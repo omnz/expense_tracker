@@ -15,7 +15,7 @@ def main():
 
     # Add expenses
     new_expense = Expenses.Expenses()
-    new_expense.insert_expense('Amazon', 5.99)
+    new_expense.askForExpenses()
 
 
 if __name__ == '__main__':
