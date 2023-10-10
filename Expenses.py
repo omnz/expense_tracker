@@ -122,8 +122,16 @@ class Expenses:
             category = ''
             cost = -1
 
+            # Ask user if they want to quit or continue adding expenses
+            while(True):
+                continue_input = input('\nDo you want to enter an expense? ')
+                if continue_input.lower() == 'y' or continue_input.lower() == 'yes':
+                    break
+                elif continue_input.lower() == 'n' or continue_input.lower() == 'no':
+                    exit()
+
             # Ask for date of expense
-            current_date = input('\nIs the expense from current year and month? ')
+            current_date = input('Is the expense from current year and month? ')
             if (current_date.lower() == 'n' or current_date.lower() == 'no'):
                 # Ask for year and month
                 year = self.askUser('year', 'int')
@@ -143,11 +151,3 @@ class Expenses:
             else:
                 current_date = datetime.datetime.now()
                 self.create_expense(current_date.year, current_date.month, category, cost)
-
-            # Ask user if they want to quit or continue adding expenses
-            while(True):
-                continue_input = input('Do you want to enter another expense? ')
-                if continue_input.lower() == 'y' or continue_input.lower() == 'yes':
-                    break
-                elif continue_input.lower() == 'n' or continue_input.lower() == 'no':
-                    exit()
