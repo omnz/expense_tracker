@@ -116,7 +116,8 @@ class Expenses:
     def askForExpenses(self):
         '''Ask user for expenses or quit'''
 
-        while(True):
+        entering_expenses = True
+        while(entering_expenses):
             year = ''
             month = ''
             category = ''
@@ -128,7 +129,11 @@ class Expenses:
                 if continue_input.lower() == 'y' or continue_input.lower() == 'yes':
                     break
                 elif continue_input.lower() == 'n' or continue_input.lower() == 'no':
-                    exit()
+                    entering_expenses = False
+                    break
+
+            if entering_expenses == False:
+                continue
 
             # Ask for date of expense
             current_date = input('Is the expense from current year and month? ')
