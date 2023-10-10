@@ -1,6 +1,5 @@
 # Keep track of monthly expenses and return your average expenses per year.
 import os
-
 import Expenses
 
 def main():
