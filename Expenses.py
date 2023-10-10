@@ -3,14 +3,27 @@ import json
 import os
 
 class Expenses:
+    '''A class representing an expense'''
+    
     def __init__(self):
+        '''Initializes an Expenses object'''
+
         self.categories = []
         self.dataDir = './data'
         self.filename = 'expenses.json'
         self.filepath = None
 
-    # Insert a new expense
-    def insert_expense(self, year, month, category, cost):
+    def create_expense(self, year, month, category, cost):
+        '''
+            Create a new expense with the passed parameters
+
+            Parameters:
+                year (int): The year the expense took place
+                month (int): The month the expense took place
+                category (String): Category used to categorize expenses
+                cost (double): The cost of the expense
+        '''
+
         expense = {
             'year': year,
             'month': month,
@@ -20,8 +33,14 @@ class Expenses:
 
         self.addToJson(expense)
         
-    # Add new expense to json file for future use
     def addToJson(self, expense):
+        '''
+            Add new expense to json file for future use
+
+            Parameters:
+                expense (dict): A dictionary containing the data of a newly created expense
+        '''
+
         # Set the filepath if it hasn't been set
         if self.filepath == None:
             self.setFilepath()
@@ -48,16 +67,21 @@ class Expenses:
         
         print(f"New expense was added to {self.filename}")
 
-    # Set the filepath using dataDir and the json filename
     def setFilepath(self, filename=None):
+        '''
+            Set the filepath using dataDir and the json filename
+
+            Parameters:
+                filename (None or String): The name of the currently used json file
+        '''
+
         if filename == None:
             filename = self.filename
         
         self.filepath = f"{self.dataDir}/{filename}"
 
-    # Ask user for expenses or quit
     def askForExpenses(self):
-        user_input = ''
+        '''Ask user for expenses or quit'''
 
         while(True):
             year = ''
@@ -97,10 +121,10 @@ class Expenses:
         
             # Use entered data to create expenses
             if(year != ''):
-                self.insert_expense(year, month, category, cost)
+                self.create_expense(year, month, category, cost)
             else:
                 current_date = datetime.datetime.now()
-                self.insert_expense(current_date.year, current_date.month, category, cost)
+                self.create_expense(current_date.year, current_date.month, category, cost)
 
             # TODO: Ask user if they want to quit or continue adding expenses
             break
