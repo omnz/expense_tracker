@@ -8,7 +8,6 @@ class Expenses:
     def __init__(self):
         '''Initializes an Expenses object'''
 
-        self.categories = []
         self.dataDir = './data'
         self.filename = 'expenses.json'
         self.filepath = None
@@ -21,7 +20,7 @@ class Expenses:
                 year (int): The year the expense took place
                 month (int): The month the expense took place
                 category (String): Category used to categorize expenses
-                cost (double): The cost of the expense
+                cost (float): The cost of the expense
         '''
 
         expense = {
@@ -31,6 +30,7 @@ class Expenses:
             'cost': cost
         }
 
+        print('\nExpense was created')
         self.addToJson(expense)
         
     def addToJson(self, expense):
@@ -44,12 +44,18 @@ class Expenses:
         # Set the filepath if it hasn't been set
         if self.filepath == None:
             self.setFilepath()
-            print(f"filepath: {self.filepath}")
 
-        # Check if json file does not exists or is empty
-        if os.path.exists(self.filepath) == False or os.path.getsize(self.filepath) <= 0:
+        print(f'Saving expense in {self.filepath}')
+
+        # Check if json file exists and is empty or doesn't exist
+        if os.path.exists(self.filepath) and os.path.getsize(self.filepath) <= 0:
             with open(self.filepath, 'w') as outfile:
-                outfile.write('[]')
+                outfile.write('[]')     # Create or initialize file with []
+        elif os.path.exists(self.filepath) == False:
+            with open(self.filepath, 'w') as outfile:
+                outfile.write('[]')     # Create or initialize file with []
+        
+        print(f"Initalized {self.filepath}")
 
         # Read json file
         data = ''
@@ -80,6 +86,33 @@ class Expenses:
         
         self.filepath = f"{self.dataDir}/{filename}"
 
+    def askUser(self, ask, data_type):
+        '''
+            Ask user for input
+
+            Parameters:
+                ask (String): String containing key of what will be asked
+                data_type (String): The data type of the input. Used for data type validation.
+            Return:
+                user_input (int, float, or String): A validated user input
+        '''
+        error_type = ''
+
+        while(True):
+            user_input = input(f'Enter the {ask} of expense: ')
+
+            try:
+                if data_type == 'int':
+                    error_type = 'integer number'
+                    user_input = int(user_input)
+                elif data_type == 'float':
+                    error_type = 'number'
+                    user_input = float(user_input)
+                return user_input
+            except:
+                print(f"ERROR: Please enter the {ask} as a {error_type}")
+
+
     def askForExpenses(self):
         '''Ask user for expenses or quit'''
 
@@ -90,34 +123,19 @@ class Expenses:
             cost = -1
 
             # Ask for date of expense
-            current_date = input('Is expense from current year and month? ')
+            current_date = input('\nIs the expense from current year and month? ')
             if (current_date.lower() == 'n' or current_date.lower() == 'no'):
-                # Ask for year
-                while(True):
-                    year = input('Enter the year of expense: ')
-                    try:
-                        year = int(year)
-                        break
-                    except:
-                        print("ERROR: Please enter the year as a integer number")
-
-                # Ask for month
-                while(True):
-                    month = input('Enter the month of expense: ')
-                    try:
-                        month = int(month)
-                        break
-                    except:
-                        print("ERROR: Please enter the month as a integer number")
+                # Ask for year and month
+                year = self.askUser('year', 'int')
+                month = self.askUser('month', 'int')
             elif (current_date.lower() == 'y' or current_date.lower() == 'yes'):
                 pass
             else:
                 continue
 
-            # TODO: Ask user for expense category
-            break
-            # TODO: Ask user for expense cost
-            break
+            # Ask user for expense category and cost
+            category = self.askUser('category', 'String')
+            cost = round(self.askUser('cost', 'float'), 2)
         
             # Use entered data to create expenses
             if(year != ''):
@@ -126,5 +144,10 @@ class Expenses:
                 current_date = datetime.datetime.now()
                 self.create_expense(current_date.year, current_date.month, category, cost)
 
-            # TODO: Ask user if they want to quit or continue adding expenses
-            break
+            # Ask user if they want to quit or continue adding expenses
+            while(True):
+                continue_input = input('Do you want to enter another expense? ')
+                if continue_input.lower() == 'y' or continue_input.lower() == 'yes':
+                    break
+                elif continue_input.lower() == 'n' or continue_input.lower() == 'no':
+                    exit()
