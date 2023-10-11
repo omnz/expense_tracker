@@ -1,6 +1,5 @@
 import datetime
-import json
-import os
+import sqlite3
 
 class Expenses:
     '''A class representing an expense'''
@@ -14,7 +13,7 @@ class Expenses:
 
     def create_expense(self, year, month, category, cost):
         '''
-            Create a new expense with the passed parameters
+            Create a new expense with the passed parameters and insert it into the 'expenses' table
 
             Parameters:
                 year (int): The year the expense took place
@@ -23,55 +22,29 @@ class Expenses:
                 cost (float): The cost of the expense
         '''
 
-        expense = {
-            'year': year,
-            'month': month,
-            'category': category,
-            'cost': cost
-        }
+        db = sqlite3.connect(f'{self.dataDir}/Expenses.db')
+        cursor = db.cursor()
 
-        print('\nExpense was created')
-        self.addToJson(expense)
-        
-    def addToJson(self, expense):
-        '''
-            Add new expense to json file for future use
+        # Create expenses table if it doesn't exist
+        query = """CREATE TABLE IF NOT EXISTS expenses(
+            id INTEGER PRIMARY KEY NOT NULL,
+            year INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            category VARCHAR(32) NOT NULL,
+            cost REAL NOT NULL
+        );"""
+        cursor.execute(query)
 
-            Parameters:
-                expense (dict): A dictionary containing the data of a newly created expense
-        '''
+        # Insert expense into table
+        query = """INSERT INTO expenses (year, month, category, cost) VALUES(?, ?, ?, ?);"""
+        params = (year, month, category, cost)
+        cursor.execute(query, params)
+        db.commit()
+        print('\nExpense was entered into table')
 
-        # Set the filepath if it hasn't been set
-        if self.filepath == None:
-            self.setFilepath()
-
-        print(f'Saving expense in {self.filepath}')
-
-        # Check if json file exists and is empty or doesn't exist
-        if os.path.exists(self.filepath) and os.path.getsize(self.filepath) <= 0:
-            with open(self.filepath, 'w') as outfile:
-                outfile.write('[]')     # Create or initialize file with []
-        elif os.path.exists(self.filepath) == False:
-            with open(self.filepath, 'w') as outfile:
-                outfile.write('[]')     # Create or initialize file with []
-        
-        print(f"Initalized {self.filepath}")
-
-        # Read json file
-        data = ''
-        try:
-            with open(self.filepath, 'r+') as infile:
-                data = json.load(infile)
-        except:
-            print(f"ERROR: Failed to load {self.filepath}\n")
-            exit()
-
-        # Send new expense to json file
-        data.append(expense)
-        with open(self.filepath, 'w') as outfile:
-            outfile.write(json.dumps(data).replace('\\', ''))
-        
-        print(f"New expense was added to {self.filename}")
+        # Closing db
+        cursor.close()
+        db.close()
 
     def setFilepath(self, filename=None):
         '''
@@ -104,6 +77,8 @@ class Expenses:
             try:
                 if data_type == 'int':
                     error_type = 'integer number'
+                    # TODO: Validate that year is of valid length
+                    # TODO: Validate that month is a value ranging from 01 - 12
                     user_input = int(user_input)
                 elif data_type == 'float':
                     error_type = 'number'

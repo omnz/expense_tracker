@@ -1,65 +1,37 @@
 # Keep track of monthly expenses and return your average expenses per year.
 import os
-import json
 import Expenses
+import sqlite3
 
 def calulateExpenses():
     dataDir = './data'
-    filename = 'expenses.json'
-    filepath = f'{dataDir}/{filename}'
-    data = ''
-    years = []
-    dataByYear = []
 
-    with open(filepath, 'r+') as infile:
-        data = json.load(infile)
+    db = sqlite3.connect(f'{dataDir}/Expenses.db')
+    cursor = db.cursor()
 
-    print(data)
-    # Count number of years of data
-    for d in data:
-        if d['year'] not in years:
-            years.append(d['year'])
+    # Create expenses table if it doesn't exist
+    query = """CREATE TABLE IF NOT EXISTS expenses(
+        id INTEGER PRIMARY KEY NOT NULL,
+        year INTEGER NOT NULL,
+        month INTEGER NOT NULL,
+        category VARCHAR(32) NOT NULL,
+        cost REAL NOT NULL
+    );"""
+    cursor.execute(query)
 
-    print(f'years: {years}')
+    # TODO: Remove this later. Testing query output to console
+    query = """SELECT * FROM expenses;"""
+    cursor.execute(query)
+    result = cursor.fetchall()
+    print(result)
 
-
-    # Seperate expenses by year
-    for y in years:            
-        yearly_expenses = []
-        for d in data:
-            if y == d['year']:
-                yearly_expenses.append(d)
-
-        # Create a YYYY_Annual_Expenses.json file
-        with open(f'./data/{y}_Annual_Expenses.json', 'w') as outfile:
-                outfile.write(json.dumps(yearly_expenses))
-
+    # Closing db
+    cursor.close()
+    db.close()
     
     # TODO: Calculate total monthly expenses and per category
     
     # TODO: Calculate total yearly expenses and per category
-    annual_expenses = 0
-
-    for i in os.listdir(dataDir):
-        if 'Annual_Expenses.json' in i:
-            with open(f'{dataDir}/{i}') as infile:
-                data = json.load(infile)
-            
-            print(f'\n{i}')
-            print(data)
-
-            # Count number of months of data per year
-            months = []
-            for d in data:
-                if d['month'] not in months:
-                    months.append(d['month'])
-
-            for m in months:
-                monthly_expenses = 0
-                for d in data:
-                    if m == d['month']:
-                        monthly_expenses += d['cost']
-
 
     # TODO: Calculate average monthly and yearly expenses
 
