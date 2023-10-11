@@ -23,9 +23,44 @@ def calulateExpenses():
     print(f'years: {years}')
 
 
+    # Seperate expenses by year
+    for y in years:            
+        yearly_expenses = []
+        for d in data:
+            if y == d['year']:
+                yearly_expenses.append(d)
+
+        # Create a YYYY_Annual_Expenses.json file
+        with open(f'./data/{y}_Annual_Expenses.json', 'w') as outfile:
+                outfile.write(json.dumps(yearly_expenses))
+
+    
     # TODO: Calculate total monthly expenses and per category
     
     # TODO: Calculate total yearly expenses and per category
+    annual_expenses = 0
+
+    for i in os.listdir(dataDir):
+        if 'Annual_Expenses.json' in i:
+            with open(f'{dataDir}/{i}') as infile:
+                data = json.load(infile)
+            
+            print(f'\n{i}')
+            print(data)
+
+            # Count number of months of data per year
+            months = []
+            for d in data:
+                if d['month'] not in months:
+                    months.append(d['month'])
+
+            for m in months:
+                monthly_expenses = 0
+                for d in data:
+                    if m == d['month']:
+                        monthly_expenses += d['cost']
+
+
     # TODO: Calculate average monthly and yearly expenses
 
 def main():
