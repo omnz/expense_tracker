@@ -77,9 +77,16 @@ class Expenses:
             try:
                 if data_type == 'int':
                     error_type = 'integer number'
-                    # TODO: Validate that year is of valid length
-                    # TODO: Validate that month is a value ranging from 01 - 12
                     user_input = int(user_input)
+                    if(ask == 'year'):
+                        if (user_input <= 0):
+                            print('ERROR: The year must be greater than 0')
+                            continue
+                    elif(ask == 'month'):
+                        if (user_input < 1 or user_input > 12):
+                            print('ERROR: The month must be a value from 1 to 12')
+                            continue
+                    
                 elif data_type == 'float':
                     error_type = 'number'
                     user_input = float(user_input)
