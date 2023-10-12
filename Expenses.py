@@ -69,6 +69,7 @@ class Expenses:
             Return:
                 user_input (int, float, or String): A validated user input
         '''
+
         error_type = ''
 
         while(True):
@@ -96,7 +97,9 @@ class Expenses:
 
 
     def askForExpenses(self):
-        '''Ask user for expenses or quit'''
+        '''Ask user to enter expenses, delete a specific expense, delete all expenses, or continue'''
+
+        # TODO: Ask user whether to delete a specific expense or whether to delete all expenses
 
         entering_expenses = True
         while(entering_expenses):
