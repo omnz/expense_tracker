@@ -11,6 +11,37 @@ class Expenses:
         self.filename = 'expenses.json'
         self.filepath = None
 
+    # TODO: Delete a specific expense or all expenses
+    def delete_expenses(self, deleteAll=False, yearsToDelete=[], expensesToDelete=[]):
+        """
+        Handles functionality of deleteing specific expenses, all expenses in a given year, or all expenses in the table
+
+        Parameters:
+            deleteAll (boolean): Used to determine whether to delete all expenses in the table
+            yearsToDelete: (list): Contains the year(s) which should be deleted from the table
+            expensesToDelete: (list): Contains the specific expense(s) which should be deleted from the table
+        """
+
+        db = sqlite3.connect(f'{self.dataDir}/Expenses.db')
+        cursor = db.cursor()
+
+        # DELETE all expenses from table
+        if(deleteAll):
+            pass
+    
+        # DELETE all expenses in the given year(s)
+        elif len(yearsToDelete) > 0:
+            for year in yearsToDelete:
+                pass
+
+        # DELETE expenses in expensesToDelete
+        else:
+            pass
+
+        # Closing db
+        cursor.close()
+        db.close()
+    
     def create_expense(self, year, month, category, cost):
         '''
             Create a new expense with the passed parameters and insert it into the 'expenses' table
