@@ -3,12 +3,14 @@ import os
 import Expenses
 import sqlite3
 import locale
+import datetime
 
 def calulateExpenses():
-    """Calculate monthly expenses per category, total monthly expenses, and annual expenses. Then print results to console."""
+    """Calculate monthly expenses per category, total monthly expenses, and annual expenses. Then output results to file."""
 
     locale.setlocale(locale.LC_ALL, 'en_US')    # Set to currency to USD
     dataDir = './data'
+    output = ''
 
     db = sqlite3.connect(f'{dataDir}/Expenses.db')
     cursor = db.cursor()
@@ -44,7 +46,7 @@ def calulateExpenses():
             for month in i:
                 months.append(month)
         
-        print(f'\n=============== {year} Costs ===============')
+        output += f'=============== {year} Costs ==============='
         # SELECT DISTINCT categories per month
         for month in months:
             query = f"""SELECT DISTINCT category FROM expenses WHERE year={year} AND month={month}"""
@@ -56,7 +58,7 @@ def calulateExpenses():
                 for category in i:
                     categories.append(category)
 
-            print(f'\n*** {getMonth(month)}\'s Cost Breakdown: ***')
+            output += f'\n*** {getMonth(month)}\'s Cost Breakdown: ***'
             # SELECT all costs per category
             monthly_cost = 0
             for category in categories:
@@ -76,19 +78,28 @@ def calulateExpenses():
 
                 monthly_cost += category_cost 
 
-                print(f'{category.title()}: {locale.currency(category_cost, grouping=True)}')
+                output += f'\n{category.title()}: {locale.currency(category_cost, grouping=True)}'
 
-            print(f'\n* Total Monthly Costs: ${monthly_cost} *\n')
+            output += f'\n\n* Total Monthly Costs: ${monthly_cost} *\n'
             annual_cost += monthly_cost
 
-        # Print annual costs
-        print('\n-----------------------------------')
-        print(f'Total Annual Costs: {locale.currency(annual_cost, grouping=True)}')
-        print('-----------------------------------')
+        # Annual costs
+        output += '\n------------- '
+        output += f'Total Annual Costs: {locale.currency(annual_cost, grouping=True)}'
+        output += ' -------------\n\n\n'
 
     # Closing db
     cursor.close()
     db.close()
+
+    # Output results
+    current_date = datetime.datetime.now()
+    output_filename = f'{dataDir}/{current_date.date()}_expenses.txt'
+    with open(output_filename, 'w') as outfile:
+        outfile.write(output)
+
+    print(f'\nExpenses were calculated, and the results were saved to: {output_filename}')
+
 
 def getMonth(month):
     """Given month number return month name
@@ -124,8 +135,6 @@ def getMonth(month):
         case 12:
             return 'December'
 
-    
-
 def main():
     """
     Returns the user's annual and monthly costs as well as the distribution of all of their expenses
@@ -134,7 +143,7 @@ def main():
     1) Create a 'data' directory if it doesn't exist to store the 'Expenses.db'
     2) Create the 'Expenses.db' if it doesn't exist
     3) Ask the user to enter expenses, if they wish to
-    4) Calculate and print out the user's annual and monthly expenses as well as what they spent their money on each month
+    4) Calculate and then output the user's annual and monthly expenses as well as what they spent their money on each month
     """
     # Create 'data' directory if it does not exist
     dataDir = './data'
@@ -149,7 +158,7 @@ def main():
     new_expense = Expenses.Expenses()
     new_expense.askForExpenses()
 
-    # Print expenses
+    # Calculate and output expenses
     calulateExpenses()
 
 if __name__ == '__main__':
