@@ -102,9 +102,11 @@ class Expenses:
         '''
 
         error_type = ''
+        NORMAL = '\033[0m'
+        RED = '\033[91m'
 
         while(True):
-            user_input = input(f'Enter the {ask} of expense: ')
+            user_input = input(f'Enter the {ask}: ')
 
             try:
                 if data_type == 'int':
@@ -112,11 +114,11 @@ class Expenses:
                     user_input = int(user_input)
                     if(ask == 'year'):
                         if (user_input <= 0):
-                            print('ERROR: The year must be greater than 0')
+                            print(f'{RED}ERROR: The year must be greater than 0{NORMAL}')
                             continue
                     elif(ask == 'month'):
                         if (user_input < 1 or user_input > 12):
-                            print('ERROR: The month must be a value from 1 to 12')
+                            print(f'{RED}ERROR: The month must be a value from 1 to 12{NORMAL}')
                             continue
                     
                 elif data_type == 'float':
@@ -124,28 +126,176 @@ class Expenses:
                     user_input = float(user_input)
                 return user_input
             except:
-                print(f"ERROR: Please enter the {ask} as a {error_type}")
+                print(f"{RED}ERROR: Please enter the {ask} as a {error_type}{NORMAL}")
+    
+    def validYearsToDelete(self):
+        db = sqlite3.connect(f'{self.dataDir}/Expenses.db')
+        cursor = db.cursor()
+        query = """SELECT DISTINCT year FROM expenses;"""
+        cursor.execute(query)
+        valid_years = cursor.fetchall()
 
+        # Closing db
+        cursor.close()
+        db.close()
 
+        return valid_years
+    
+    def possibleYears(self, returnYears=False):
+        possible_years = self.validYearsToDelete()
+        years = []
+
+        # Change list of tuples to list of int
+        for y in possible_years:
+            for i in y:
+                years.append(i)
+
+        print(f'Possible years to delete: {years}')
+
+        if returnYears:
+            return years
+
+    
+    def getPossibleExpenses(self, year, month=''):
+        db = sqlite3.connect(f'{self.dataDir}/Expenses.db')
+        cursor = db.cursor()
+        query = ''
+
+        if month != '':
+            query = f"""SELECT * FROM expenses WHERE year={year} AND month={month};"""
+        else:
+            query = f"""SELECT * FROM expenses WHERE year={year};"""
+
+        cursor.execute(query)
+        valid_expenses = cursor.fetchall()
+
+        # Closing db
+        cursor.close()
+        db.close()
+
+        return valid_expenses
+    
+    def askForExpensesToDelete(self):
+
+        continue_asking = True
+        # Ask whether to delete ALL expenses
+        while(True):
+            delete_all = input('Do you want to delete all expenses? ')
+            if (delete_all.lower() == 'y' or delete_all.lower() == 'yes'):
+                continue_asking = False
+                break
+            elif (delete_all.lower() == 'n' or delete_all.lower() == 'no'):
+                break
+
+        # Ask whether to delete all expenses for specific years
+        if continue_asking:
+            yearsToDelete = []
+            yearAdded = False
+
+            while(True):
+                deleteInYear = ''
+                if yearAdded:
+                    deleteInYear = input('Do you also want to delete all expenses in another year? ')
+                else:
+                    deleteInYear = input('Do you want to delete all expenses in a specific year? ')
+
+                if (deleteInYear.lower() == 'y' or deleteInYear.lower() == 'yes'):
+                    continue_asking = False
+
+                    # Ask for year to delete
+                    while(True):
+                        years = self.possibleYears(True)
+                        year = self.askUser('year', 'int')
+                        if year in years:
+                            continue_asking = False
+                            yearsToDelete.append(year)
+                            yearAdded = True
+                            break
+
+                    
+                elif (deleteInYear.lower() == 'n' or deleteInYear.lower() == 'no'):
+                    break
+
+            # Delete all expenses in specific years
+            print(f'yearsToDelete: {yearsToDelete}')
+            if len(yearsToDelete) > 0:
+                self.delete_expenses(False, yearsToDelete)
+
+        # Ask for specific expenses to delete
+        if continue_asking:
+            expnsesToDelete = []
+
+            while(True):
+                deleteExpense = input('Do you want to delete a specific expense? ')
+                if (deleteExpense.lower() == 'y' or deleteExpense.lower() == 'yes'):
+                    while(True):
+                        id_known = input('Do you know the id of the expense you wish to delete? ')
+                        if (id_known.lower() == 'y' or id_known.lower() == 'yes'):
+                            expense_id = self.askUser('id', 'int')
+                            expnsesToDelete.append(expense_id)
+                            break
+                        elif (id_known.lower() == 'n' or id_known.lower() == 'no'):
+                            print()
+                            self.possibleYears()
+                            print('Please enter the year of the expense below.')
+                            # Ask for year and month
+                            year = self.askUser('year', 'int')
+                            month = ''
+
+                            while(True):
+                                monthKnown = input('Do you know the month of the expense place? ')
+                                if (monthKnown.lower() == 'y' or monthKnown.lower() == 'yes'):
+                                    month = self.askUser('month', 'int')
+                                elif (monthKnown.lower() == 'n' or monthKnown.lower() == 'no'):
+                                    break
+
+                            # Get possible expenses to delete and save them in text file
+                            output_list = self.getPossibleExpenses(year, month)
+                            output = f'====== {year} Expenses ======\n'
+                            output += 'id, year, month, category, cost\n\n'
+
+                            # Generate output from output list
+                            for expense in output_list:
+                                for i in expense:
+                                    output += str(i) + ', '
+                                output += '\n'
+                            filename = f'{self.dataDir}/possibleExpenses.txt'
+                            with open(filename, 'w') as outfile:
+                                outfile.write(output)
+
+                            print(f'Printing all expenses in given date. Please check {filename} for the id.')
+                        
+                    
+                elif (deleteExpense.lower() == 'n' or deleteExpense.lower() == 'no'):
+                    break
+
+    
     def askForExpenses(self):
         '''Ask user to enter expenses, delete a specific expense, delete all expenses, or continue'''
 
         # TODO: Ask user whether to delete a specific expense or whether to delete all expenses
-
-        entering_expenses = True
-        while(entering_expenses):
+        BOLD = '\033[1m'
+        NORMAL = '\033[0m'
+        continue_asking = True
+        while(continue_asking):
             year = ''
             month = ''
             category = ''
             cost = -1
 
-            # Ask user if they want to quit or continue adding expenses
+            # Ask user if they want to enter expenses, delete expenses, or continue
             while(True):
-                continue_input = input('\nDo you want to enter an expense? ')
-                if continue_input.lower() == 'y' or continue_input.lower() == 'yes':
+                task_input = input(f'\nDo you want to {BOLD}add{NORMAL} expenses, {BOLD}delete{NORMAL} expenses, or {BOLD}continue{NORMAL}? ')
+                if task_input.lower() == 'add':
+                    entering_expenses = True
                     break
-                elif continue_input.lower() == 'n' or continue_input.lower() == 'no':
+                elif task_input.lower() == 'del' or task_input.lower() == 'delete':
                     entering_expenses = False
+                    self.askForExpensesToDelete()
+                    break
+                elif task_input.lower() == 'continue' or task_input.lower() == '':
+                    continue_asking = False
+                    entering_expenses == False
                     break
 
             if entering_expenses == False:
