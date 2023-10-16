@@ -1,69 +1,150 @@
 # Keep track of monthly expenses and return your average expenses per year.
 import os
-import json
 import Expenses
+import sqlite3
+import locale
+import datetime
 
 def calulateExpenses():
+    """Calculate monthly expenses per category, total monthly expenses, and annual expenses. Then output results to file."""
+
+    locale.setlocale(locale.LC_ALL, 'en_US')    # Set to currency to USD
     dataDir = './data'
-    filename = 'expenses.json'
-    filepath = f'{dataDir}/{filename}'
-    data = ''
+    output = ''
+
+    db = sqlite3.connect(f'{dataDir}/Expenses.db')
+    cursor = db.cursor()
+
+    # Create expenses table if it doesn't exist
+    query = """CREATE TABLE IF NOT EXISTS expenses(
+        id INTEGER PRIMARY KEY NOT NULL,
+        year INTEGER NOT NULL,
+        month INTEGER NOT NULL,
+        category VARCHAR(32) NOT NULL,
+        cost REAL NOT NULL
+    );"""
+    cursor.execute(query)
+
+    # SELECT DISTINCT years in which expenses occured
+    query = """SELECT DISTINCT year FROM expenses;"""
+    cursor.execute(query)
+    query_result = cursor.fetchall()
     years = []
-    dataByYear = []
-
-    with open(filepath, 'r+') as infile:
-        data = json.load(infile)
-
-    print(data)
-    # Count number of years of data
-    for d in data:
-        if d['year'] not in years:
-            years.append(d['year'])
-
-    print(f'years: {years}')
-
-
-    # Seperate expenses by year
-    for y in years:            
-        yearly_expenses = []
-        for d in data:
-            if y == d['year']:
-                yearly_expenses.append(d)
-
-        # Create a YYYY_Annual_Expenses.json file
-        with open(f'./data/{y}_Annual_Expenses.json', 'w') as outfile:
-                outfile.write(json.dumps(yearly_expenses))
-
+    for y in query_result:
+        for year in y:
+            years.append(year)
     
-    # TODO: Calculate total monthly expenses and per category
-    
-    # TODO: Calculate total yearly expenses and per category
-    annual_expenses = 0
+    # SELECT DISTINCT months per year where expenses occured
+    for year in years:
+        query = f"""SELECT DISTINCT month FROM expenses WHERE year={year}"""
+        cursor.execute(query)
+        query_result = cursor.fetchall()
+        annual_cost = 0
 
-    for i in os.listdir(dataDir):
-        if 'Annual_Expenses.json' in i:
-            with open(f'{dataDir}/{i}') as infile:
-                data = json.load(infile)
-            
-            print(f'\n{i}')
-            print(data)
+        months = []
+        for i in query_result:
+            for month in i:
+                months.append(month)
+        
+        output += f'=============== {year} Costs ==============='
+        # SELECT DISTINCT categories per month
+        for month in months:
+            query = f"""SELECT DISTINCT category FROM expenses WHERE year={year} AND month={month}"""
+            cursor.execute(query)
+            query_result = cursor.fetchall()
 
-            # Count number of months of data per year
-            months = []
-            for d in data:
-                if d['month'] not in months:
-                    months.append(d['month'])
+            categories = []
+            for i in query_result:
+                for category in i:
+                    categories.append(category)
 
-            for m in months:
-                monthly_expenses = 0
-                for d in data:
-                    if m == d['month']:
-                        monthly_expenses += d['cost']
+            output += f'\n*** {getMonth(month)}\'s Cost Breakdown: ***'
+            # SELECT all costs per category
+            monthly_cost = 0
+            for category in categories:
+                query = f"""SELECT cost FROM expenses WHERE year={year} AND month={month} AND category='{category}'"""
+                cursor.execute(query)
+                query_result = cursor.fetchall()
+
+                costs = []
+                for i in query_result:
+                    for cost in i:
+                        costs.append(cost)
+
+                # Calculate costs per category
+                category_cost = 0
+                for cost in costs:
+                    category_cost += cost
+
+                monthly_cost += category_cost 
+
+                output += f'\n{category.title()}: {locale.currency(category_cost, grouping=True)}'
+
+            output += f'\n\n* Total Monthly Costs: ${monthly_cost} *\n'
+            annual_cost += monthly_cost
+
+        # Annual costs
+        output += '\n------------- '
+        output += f'Total Annual Costs: {locale.currency(annual_cost, grouping=True)}'
+        output += ' -------------\n\n\n'
+
+    # Closing db
+    cursor.close()
+    db.close()
+
+    # Output results
+    current_date = datetime.datetime.now()
+    output_filename = f'{dataDir}/{current_date.date()}_expenses.txt'
+    with open(output_filename, 'w') as outfile:
+        outfile.write(output)
+
+    print(f'\nExpenses were calculated, and the results were saved to: {output_filename}')
 
 
-    # TODO: Calculate average monthly and yearly expenses
+def getMonth(month):
+    """Given month number return month name
+        Parameters:
+            month (int): numerical representation of month
+
+        Return: Name of month corresponding to the passed numerical value
+    """
+
+    match month:
+        case 1:
+            return 'January'
+        case 2:
+            return 'February'
+        case 3:
+            return 'March'
+        case 4:
+            return 'April'
+        case 5:
+            return 'May'
+        case 6:
+            return 'June'
+        case 7:
+            return 'July'
+        case 8:
+            return 'August'
+        case 9:
+            return 'September'
+        case 10:
+            return 'October'
+        case 11:
+            return 'November'
+        case 12:
+            return 'December'
 
 def main():
+    """
+    Returns the user's annual and monthly costs as well as the distribution of all of their expenses
+
+    Steps to Complete:
+    1) Create a 'data' directory if it doesn't exist to store the 'Expenses.db'
+    2) Create the 'Expenses.db' if it doesn't exist
+    3) Ask the user to enter expenses, if they wish to
+    4) Calculate and then output the user's annual and monthly expenses as well as what they spent their money on each month
+    """
     # Create 'data' directory if it does not exist
     dataDir = './data'
     if os.path.exists(dataDir) == False:
@@ -77,7 +158,7 @@ def main():
     new_expense = Expenses.Expenses()
     new_expense.askForExpenses()
 
-    # Print expenses
+    # Calculate and output expenses
     calulateExpenses()
 
 if __name__ == '__main__':
