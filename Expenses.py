@@ -30,11 +30,16 @@ class Expenses:
         # DELETE all expenses from table
         if(deleteAll):
             query = """DELETE FROM expenses;"""
+            cursor.execute(query)
+            db.commit()
+            print("\nDeleted all expenses from the expenses table.")
     
         # DELETE all expenses in the given year(s)
         elif len(yearsToDelete) > 0:
             for year in yearsToDelete:
                 query = f"""DELETE FROM expenses WHERE year={year};"""
+                cursor.execute(query)
+                db.commit()
                 print(f"Deleted all expenses for {year}")
 
         # DELETE expenses in expensesToDelete
@@ -201,6 +206,7 @@ class Expenses:
             delete_all = input('Do you want to delete all expenses? ')
             if (delete_all.lower() == 'y' or delete_all.lower() == 'yes'):
                 continue_asking = False
+                self.delete_expenses(True)
                 break
             elif (delete_all.lower() == 'n' or delete_all.lower() == 'no'):
                 break
@@ -223,6 +229,7 @@ class Expenses:
                     # Ask for year to delete
                     while(True):
                         years = self.validYearsToDelete()
+                        print(f'\nPossible years to delete: {years}')
                         year = self.askUser('year', 'int')
                         if year in years:
                             continue_asking = False
