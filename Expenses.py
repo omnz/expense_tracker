@@ -1,5 +1,6 @@
 import datetime
 import sqlite3
+import Style
 
 class Expenses:
     '''A class representing an expense'''
@@ -10,6 +11,7 @@ class Expenses:
         self.dataDir = './data'
         self.filename = 'expenses.json'
         self.filepath = None
+        self.style = Style.Style()
 
     # TODO: Delete a specific expense or all expenses
     def delete_expenses(self, deleteAll=False, yearsToDelete=[], expensesToDelete=[]):
@@ -27,16 +29,26 @@ class Expenses:
 
         # DELETE all expenses from table
         if(deleteAll):
-            pass
+            query = """DELETE FROM expenses;"""
     
         # DELETE all expenses in the given year(s)
         elif len(yearsToDelete) > 0:
             for year in yearsToDelete:
-                pass
+                query = f"""DELETE FROM expenses WHERE year={year};"""
+                print(f"Deleted all expenses for {year}")
 
         # DELETE expenses in expensesToDelete
-        else:
-            pass
+        elif len(expensesToDelete) > 0:
+            for expense_id in expensesToDelete:
+                query = f"""SELECT * FROM expenses WHERE id={expense_id};"""
+                cursor.execute(query)
+                exp_to_del = cursor.fetchall()
+
+                # DELETE expense
+                query = f"""DELETE FROM expenses WHERE id={expense_id};"""
+                cursor.execute(query)
+                db.commit()
+                print(f'Deleted {exp_to_del}')
 
         # Closing db
         cursor.close()
@@ -102,9 +114,6 @@ class Expenses:
         '''
 
         error_type = ''
-        NORMAL = '\033[0m'
-        RED = '\033[91m'
-
         while(True):
             user_input = input(f'Enter the {ask}: ')
 
@@ -114,11 +123,11 @@ class Expenses:
                     user_input = int(user_input)
                     if(ask == 'year'):
                         if (user_input <= 0):
-                            print(f'{RED}ERROR: The year must be greater than 0{NORMAL}')
+                            print(f'{self.style.RED}ERROR: The year must be greater than 0{self.style.NORMAL}')
                             continue
                     elif(ask == 'month'):
                         if (user_input < 1 or user_input > 12):
-                            print(f'{RED}ERROR: The month must be a value from 1 to 12{NORMAL}')
+                            print(f'{self.style.RED}ERROR: The month must be a value from 1 to 12{self.style.NORMAL}')
                             continue
                     
                 elif data_type == 'float':
@@ -126,9 +135,11 @@ class Expenses:
                     user_input = float(user_input)
                 return user_input
             except:
-                print(f"{RED}ERROR: Please enter the {ask} as a {error_type}{NORMAL}")
+                print(f"{self.style.RED}ERROR: Please enter the {ask} as a {error_type}{self.style.NORMAL}")
     
     def validYearsToDelete(self):
+        """Returns a list (int) of all the years which contain data (expenses) in the expenses table"""
+
         db = sqlite3.connect(f'{self.dataDir}/Expenses.db')
         cursor = db.cursor()
         query = """SELECT DISTINCT year FROM expenses;"""
@@ -139,24 +150,25 @@ class Expenses:
         cursor.close()
         db.close()
 
-        return valid_years
-    
-    def possibleYears(self, returnYears=False):
-        possible_years = self.validYearsToDelete()
+        # Change list (tuples) to list (int)
         years = []
 
-        # Change list of tuples to list of int
-        for y in possible_years:
+        for y in valid_years:
             for i in y:
                 years.append(i)
 
-        print(f'Possible years to delete: {years}')
-
-        if returnYears:
-            return years
-
+        return years
     
     def getPossibleExpenses(self, year, month=''):
+        """
+        Returns a list of all expenses in the given year and (optional) month
+        Parameters:
+            year (int): The year of the expense the user is looking for
+            month (int): Optional parameter used to narrow down the returned list by returning only the expenses in the given month
+
+        Return: Returns a list of expenses in the given year and (optional) month
+        """
+
         db = sqlite3.connect(f'{self.dataDir}/Expenses.db')
         cursor = db.cursor()
         query = ''
@@ -176,6 +188,12 @@ class Expenses:
         return valid_expenses
     
     def askForExpensesToDelete(self):
+        """
+        Ask user:
+            1) If they want to delete all saved expenses.
+            2) If they want to delete all expenses for a given year
+            3) If they want to delete a specific expense
+        """
 
         continue_asking = True
         # Ask whether to delete ALL expenses
@@ -204,7 +222,7 @@ class Expenses:
 
                     # Ask for year to delete
                     while(True):
-                        years = self.possibleYears(True)
+                        years = self.validYearsToDelete()
                         year = self.askUser('year', 'int')
                         if year in years:
                             continue_asking = False
@@ -217,27 +235,32 @@ class Expenses:
                     break
 
             # Delete all expenses in specific years
-            print(f'yearsToDelete: {yearsToDelete}')
             if len(yearsToDelete) > 0:
                 self.delete_expenses(False, yearsToDelete)
 
         # Ask for specific expenses to delete
         if continue_asking:
-            expnsesToDelete = []
+            expensesToDelete = []
 
             while(True):
-                deleteExpense = input('Do you want to delete a specific expense? ')
+                deleteExpense = ''
+                if len(expensesToDelete) > 0:
+                    deleteExpense = input('\nDo you want to delete another expense? ')
+                else:
+                    deleteExpense = input('Do you want to delete a specific expense? ')
+
+                # If user wants to delete a sepcific expense
                 if (deleteExpense.lower() == 'y' or deleteExpense.lower() == 'yes'):
                     while(True):
                         id_known = input('Do you know the id of the expense you wish to delete? ')
                         if (id_known.lower() == 'y' or id_known.lower() == 'yes'):
                             expense_id = self.askUser('id', 'int')
-                            expnsesToDelete.append(expense_id)
+                            expensesToDelete.append(expense_id)
                             break
                         elif (id_known.lower() == 'n' or id_known.lower() == 'no'):
-                            print()
-                            self.possibleYears()
+                            print(f'\nPossible years to delete: {self.validYearsToDelete()}')
                             print('Please enter the year of the expense below.')
+
                             # Ask for year and month
                             year = self.askUser('year', 'int')
                             month = ''
@@ -269,56 +292,45 @@ class Expenses:
                 elif (deleteExpense.lower() == 'n' or deleteExpense.lower() == 'no'):
                     break
 
+            # DELETE specific expenses
+            if len(expensesToDelete) > 0:
+                self.delete_expenses(False, [], expensesToDelete)
+
+    def askForExpensesToEnter(self):
+        """Ask for expense' data and then create the expense using the entered data"""
+
+        year = ''
+        month = ''
+        category = ''
+        cost = -1
+
+        # Ask for date of expense
+        current_date = input('Is the expense from current year and month? ')
+        if (current_date.lower() == 'n' or current_date.lower() == 'no'):
+            # Ask for year and month
+            year = self.askUser('year', 'int')
+            month = self.askUser('month', 'int')
+
+        # Ask user for expense category and cost
+        category = self.askUser('category', 'String')
+        cost = round(self.askUser('cost', 'float'), 2)
+    
+        # Use entered data to create expenses
+        if(year != ''):
+            self.create_expense(year, month, category, cost)
+        else:
+            current_date = datetime.datetime.now()
+            self.create_expense(current_date.year, current_date.month, category, cost)
     
     def askForExpenses(self):
         '''Ask user to enter expenses, delete a specific expense, delete all expenses, or continue'''
 
-        # TODO: Ask user whether to delete a specific expense or whether to delete all expenses
-        BOLD = '\033[1m'
-        NORMAL = '\033[0m'
-        continue_asking = True
-        while(continue_asking):
-            year = ''
-            month = ''
-            category = ''
-            cost = -1
-
-            # Ask user if they want to enter expenses, delete expenses, or continue
-            while(True):
-                task_input = input(f'\nDo you want to {BOLD}add{NORMAL} expenses, {BOLD}delete{NORMAL} expenses, or {BOLD}continue{NORMAL}? ')
-                if task_input.lower() == 'add':
-                    entering_expenses = True
-                    break
-                elif task_input.lower() == 'del' or task_input.lower() == 'delete':
-                    entering_expenses = False
-                    self.askForExpensesToDelete()
-                    break
-                elif task_input.lower() == 'continue' or task_input.lower() == '':
-                    continue_asking = False
-                    entering_expenses == False
-                    break
-
-            if entering_expenses == False:
-                continue
-
-            # Ask for date of expense
-            current_date = input('Is the expense from current year and month? ')
-            if (current_date.lower() == 'n' or current_date.lower() == 'no'):
-                # Ask for year and month
-                year = self.askUser('year', 'int')
-                month = self.askUser('month', 'int')
-            elif (current_date.lower() == 'y' or current_date.lower() == 'yes'):
-                pass
-            else:
-                continue
-
-            # Ask user for expense category and cost
-            category = self.askUser('category', 'String')
-            cost = round(self.askUser('cost', 'float'), 2)
-        
-            # Use entered data to create expenses
-            if(year != ''):
-                self.create_expense(year, month, category, cost)
-            else:
-                current_date = datetime.datetime.now()
-                self.create_expense(current_date.year, current_date.month, category, cost)
+        # Ask user if they want to enter expenses, delete expenses, or continue
+        while(True):
+            task_input = input(f'\nDo you want to {self.style.GREEN}add{self.style.NORMAL} expenses, {self.style.RED}delete{self.style.NORMAL} expenses, or {self.style.BLUE}continue{self.style.NORMAL}? ')
+            if task_input.lower() == 'add':
+                self.askForExpensesToEnter()
+            elif task_input.lower() == 'del' or task_input.lower() == 'delete':
+                self.askForExpensesToDelete()
+            elif task_input.lower() == 'continue' or task_input.lower() == '':
+                break
